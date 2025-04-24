@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+    <link rel="stylesheet" href="public/custom-css.css" />
+
+    <!-- React and ReactDOM from CDN -->
+    <script src="/react_17.0.2.development.js" crossorigin></script>
+    <script src="/react-dom_17.0.2.development.js" crossorigin></script>
+
+    <!-- Babel to support JSX directly in the browser -->
+    <script src="/babel_6.26.0.min.js"></script>
+
+    <script src="/material-ui.production_4.11.0.min.js"></script>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { Card, CardContent, Typography, Button, Grid, IconButton } = MaterialUI;
+
+      const SearchTaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+          <Button variant="contained" color="default" type="submit">
+            Get Project List
+          </Button>
+        </form>
+      );
+
+      const TaskCard = ({ task, onDelete }) => (
+        <Grid item xs={12} md={4}>
+          <Card style={{ margin: '10px' }}>
+            <CardContent>
+              <Typography variant="h5" component="h3">{task.name}</Typography><br />
+              <Typography variant="body2" component="p">Total: {task.tasks}</Typography>
+              </CardContent>
+            <IconButton aria-label="delete" onClick={() => onDelete(task.id)}>
+              <span className="material-icons">close</span>
+            </IconButton>
+          </Card>
+        </Grid>
+      );
+
+      const TaskList = ({ tasks, onDelete }) => (
+        <Grid container spacing={3}>
+          {tasks.map((task, index) => (
+            <TaskCard key={index} task={task} onDelete={onDelete} />
+          ))}
+        </Grid>
+      );
+
+      const App = () => {
+        const [tasks, setTasks] = React.useState([]);
+        const [loadingSearch, setLoadingSearch] = React.useState(false);
+
+        // Search Task
+        const searchTask = (e) => {
+          e.preventDefault();
+          setLoadingSearch(true);
+
+          fetch('{%= BASE_URL =%}/tm/v1/tasks/projects', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              setTasks(data);
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingSearch(false);
+
+            })
+        };
+
+        return (
+          <div className="container mt-5">
+            <div className="row">
+            <div className="col-md-4">
+                <h2>Search Task</h2>
+                {loadingSearch ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Search Task...</div>
+                    </div>
+                  ) :
+                (<SearchTaskForm onSubmit={searchTask} />)}
+              </div>
+            </div>
+
+            <h2 className="mt-5">Task List</h2>
+            <TaskList tasks={tasks} />
+          </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+</body>
+</html>

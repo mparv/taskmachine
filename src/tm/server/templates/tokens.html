@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+    <link rel="stylesheet" href="public/custom-css.css" />
+
+    <!-- React and ReactDOM from CDN -->
+    <script src="/react_17.0.2.development.js" crossorigin></script>
+    <script src="/react-dom_17.0.2.development.js" crossorigin></script>
+
+    <!-- Babel to support JSX directly in the browser -->
+    <script src="/babel_6.26.0.min.js"></script>
+
+    <script src="/material-ui.production_4.11.0.min.js"></script>
+
+    <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { Card, CardContent, Typography, Button, Grid, IconButton } = MaterialUI;
+
+      const TaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+
+          <div className="form-group">
+            <label>Earned For:</label>
+            <input type="text" name="title" className="form-control" required />
+          </div>
+
+          <div className="form-group">
+            <label>Earned On:</label>
+            <input type="date" name="due_date" className="form-control" />
+          </div>
+
+          <div className="form-group">
+            <label>Token amount:</label>
+            <select name="priority" className="form-control">
+              <option value="10">10</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+              <option value="120">120</option>
+              <option value="300">300</option>
+              </select>
+          </div>
+          
+          <Button variant="contained" color="primary" type="submit">
+            Add Token
+          </Button>
+        </form>
+      );
+
+      const ArchiveTaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+          <div className="form-group">
+            <label>Token expended:</label>
+            <select name="id" className="form-control" required>
+              <option value="10">10</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+              <option value="120">120</option>
+              <option value="300">300</option>
+              </select>
+          </div>
+          <Button variant="contained" color="secondary" type="submit">
+            Expend
+          </Button>
+        </form>
+      );
+
+      const SearchTaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+
+          <Button variant="contained" color="default" type="submit">
+            Get Tokens
+          </Button>
+        </form>
+      );
+
+      const App = () => {
+        const [tasks, setTasks] = React.useState([]);
+        const [loadingCreate, setLoadingCreate] = React.useState(false);
+        const [loadingSearch, setLoadingSearch] = React.useState(false);
+        const [loadingArchive, setLoadingArchive] = React.useState(false);
+        const [responseMessage, setResponseMessage] = React.useState("");
+
+        // Create New Task
+        const submitTask = (e) => {
+          e.preventDefault();
+          setLoadingCreate(true);
+
+          const taskData = {
+            earned_for: e.target.title.value,
+            earned_on: e.target.due_date.value,
+            amount: e.target.priority.value
+          };
+
+          fetch('{%= BASE_URL =%}/tokenop/v1/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(taskData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              alert(JSON.stringify(data));
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingCreate(false);
+            })
+        };
+
+        // Archive Task
+        const archiveTask = (e) => {
+          e.preventDefault();
+          setLoadingArchive(true);
+
+          const id_task_archive = e.target.id.value;
+
+          fetch('{%= BASE_URL =%}/tokenop/v1/expend/' + id_task_archive, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          })
+            .then((response) => {
+              if (response.ok) {
+                alert('Task archived successfully!');
+              } else {
+                alert('Failed to archive task. Please check the task ID.');
+              }
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingArchive(false);
+            })
+        };
+
+        // Search Task
+        const searchTask = (e) => {
+          e.preventDefault();
+          setLoadingSearch(true);
+
+
+          fetch('{%= BASE_URL =%}/tokenop/v1', {
+            method: 'GET',
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error("Network response was not ok");
+              return response.text();
+            })
+            .then((data) => {
+                setResponseMessage("Token available: \n" + data.replace(/<br \/>/g, "\n"))
+            })
+            .catch((error) => setResponseMessage('Error:' + error))
+            .finally(() => {
+              setLoadingSearch(false);
+
+            })
+        };
+
+        return (
+          <div className="container mt-5">
+            <div className="row">
+              <div className="col-md-4">
+                <h2>Supplement Tokens</h2>
+                {loadingCreate ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Create Task...</div>
+                    </div>
+                  ) : (
+                    <TaskForm onSubmit={submitTask} />
+                  )}
+              </div>
+
+              <div className="col-md-4">
+                <h2>Get usable Tokens</h2>
+                {loadingSearch ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Search Task...</div>
+                    </div>
+                  ) :
+                (
+                    <SearchTaskForm onSubmit={searchTask} />
+                    
+                )}
+                {responseMessage && (
+                <div className="mt-3 alert alert-info"><pre>{responseMessage}</pre></div>
+                )}
+              </div>
+
+              <div className="col-md-4">
+                <h2>Expend Tokens</h2>
+                {loadingArchive ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Archive Task...</div>
+                    </div>
+                  ) : (
+                <ArchiveTaskForm onSubmit={archiveTask} />)}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+</body>
+</html>

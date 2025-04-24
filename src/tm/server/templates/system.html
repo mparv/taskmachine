@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform</title>
+
+    <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+
+<div style="display: flex; width: 100%;">
+    <div id="platformDiv">
+        <h3>Platform</h3>
+        <button onclick="getPlatformInfo()">Get Platform Info</button>
+        <pre><div id="bookDisplay">Loading...</textarea></pre><br /><br />
+    </div>
+</div>
+
+<style>
+</style>
+
+<script>
+    function getPlatformInfo() {
+        fetch('{%= BASE_URL =%}/platform/systemInfo', {
+            method: 'GET'
+        })
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById("bookDisplay").innerHTML = data
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error)
+        });
+    }
+ </script>
+
+</body>
+</html>

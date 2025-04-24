@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+    <link rel="stylesheet" href="public/custom-css.css" />
+
+    <!-- React and ReactDOM from CDN -->
+    <script src="/react_17.0.2.development.js" crossorigin></script>
+    <script src="/react-dom_17.0.2.development.js" crossorigin></script>
+
+    <!-- Babel to support JSX directly in the browser -->
+    <script src="/babel_6.26.0.min.js"></script>
+
+    <script src="/material-ui.production_4.11.0.min.js"></script>
+
+    <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { Card, CardContent, Typography, Button, Grid, IconButton } = MaterialUI;
+
+      const TaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+          <div className="form-group">
+            <label>Project:</label>
+            <input type="text" name="project" className="form-control" required />
+          </div>
+
+          <div className="form-group">
+            <label>Title:</label>
+            <input type="text" name="title" className="form-control" required />
+          </div>
+          
+          <div className="form-group">
+            <label>Description:</label>
+            <input type="text" name="description" className="form-control" required />
+          </div>
+
+          <div className="form-group">
+            <label>Due Date:</label>
+            <input type="date" name="due_date" className="form-control" />
+          </div>
+
+          <div className="form-group">
+            <label>Priority:</label>
+            <select name="priority" className="form-control">
+              <option value="major">Major</option>
+              <option value="critical" selected>Critical</option>
+              <option value="blocker">Blocker</option>
+              <option value="fatal">Fatal</option>
+            </select>
+          </div>
+          
+          <Button variant="contained" color="primary" type="submit">
+            Submit Task
+          </Button>
+        </form>
+      );
+
+      const ArchiveTaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+          <div className="form-group">
+            <label>Archive ID:</label>
+            <input type="text" name="id" className="form-control" required />
+          </div>
+          <Button variant="contained" color="secondary" type="submit">
+            Archive Task
+          </Button>
+        </form>
+      );
+
+      const SearchTaskForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+          <div className="form-group">
+            <label>Project:</label>
+            <input type="text" name="project" className="form-control" />
+          </div>
+
+          <div className="form-group">
+            <label>Is Archived:</label>
+            <input type="checkbox" name="search_is_archived" className="form-check-input" />
+          </div>
+
+          <div className="form-group">
+            <label>Due Date:</label>
+            <input type="date" name="search_due_date" className="form-control" />
+          </div>
+
+          <div className="form-group">
+            <label>Priority:</label>
+            <select name="search_priority" className="form-control">
+              <option value="ALL">ALL</option>
+              <option value="major">Major</option>
+              <option value="critical">Critical</option>
+              <option value="blocker">Blocker</option>
+              <option value="fatal">Fatal</option>
+            </select>
+          </div>
+
+          <Button variant="contained" color="default" type="submit">
+            Search Task
+          </Button>
+        </form>
+      );
+
+      const TaskCard = ({ task, onDelete }) => (
+        <Grid item xs={12} md={4}>
+          <Card style={{ margin: '10px' }}>
+            <CardContent>
+              <Typography variant="h5" component="h2">{task.title}</Typography>
+              <Typography color="textSecondary">{task.project} / {task.description}</Typography>
+              <Typography variant="body2" component="p">
+                {task.due_date}, {task.priority}, {task.id}
+              </Typography>
+            </CardContent>
+            <IconButton aria-label="delete" onClick={() => onDelete(task.id)}>
+              <span className="material-icons">close</span>
+            </IconButton>
+          </Card>
+        </Grid>
+      );
+
+      const TaskList = ({ tasks, onDelete }) => (
+        <Grid container spacing={3}>
+          {tasks.map((task, index) => (
+            <TaskCard key={index} task={task} onDelete={onDelete} />
+          ))}
+        </Grid>
+      );
+
+      const App = () => {
+        const [tasks, setTasks] = React.useState([]);
+        const [loadingCreate, setLoadingCreate] = React.useState(false);
+        const [loadingSearch, setLoadingSearch] = React.useState(false);
+        const [loadingArchive, setLoadingArchive] = React.useState(false);
+
+        // Create New Task
+        const submitTask = (e) => {
+          e.preventDefault();
+          setLoadingCreate(true);
+
+          const taskData = {
+            title: e.target.title.value,
+            description: e.target.description.value,
+            due_date: e.target.due_date.value,
+            priority: e.target.priority.value,
+            project: e.target.project.value
+          };
+
+          fetch('{%= BASE_URL =%}/tm/v1/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(taskData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              setTasks([...tasks, data]);
+              alert(JSON.stringify(data));
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingCreate(false);
+            })
+        };
+
+        // Archive Task
+        const archiveTask = (e) => {
+          e.preventDefault();
+          setLoadingArchive(true);
+
+          const id_task_archive = e.target.id.value;
+
+          fetch('{%= BASE_URL =%}/tm/v1/tasks/archive/' + id_task_archive, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+          })
+            .then((response) => {
+              if (response.ok) {
+                setTasks(tasks.filter((task) => task.id !== id_task_archive));
+                alert('Task archived successfully!');
+              } else {
+                alert('Failed to archive task. Please check the task ID.');
+              }
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingArchive(false);
+
+            })
+        };
+
+        // Search Task
+        const searchTask = (e) => {
+          e.preventDefault();
+          setLoadingSearch(true);
+
+          const taskData = {
+            is_archived: e.target.search_is_archived.checked,
+            due_date: e.target.search_due_date.value,
+            priority: e.target.search_priority.value,
+            project: e.target.project.value
+          };
+
+          fetch('{%= BASE_URL =%}/tm/v1/tasks/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(taskData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              setTasks(data);
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingSearch(false);
+
+            })
+        };
+
+        return (
+          <div className="container mt-5">
+            <div className="row">
+              <div className="col-md-4">
+                <h2>Create Task</h2>
+                {loadingCreate ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Create Task...</div>
+                    </div>
+                  ) : (
+                    <TaskForm onSubmit={submitTask} />
+                  )}
+              </div>
+
+              <div className="col-md-4">
+                <h2>Search Task</h2>
+                {loadingSearch ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Search Task...</div>
+                    </div>
+                  ) :
+                (<SearchTaskForm onSubmit={searchTask} />)}
+              </div>
+
+              <div className="col-md-4">
+                <h2>Archive Task</h2>
+                {loadingArchive ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Archive Task...</div>
+                    </div>
+                  ) : (
+                <ArchiveTaskForm onSubmit={archiveTask} />)}
+              </div>
+            </div>
+
+            <h2 className="mt-5">Task List</h2>
+            <TaskList tasks={tasks} onDelete={archiveTask} />
+          </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+</body>
+</html>

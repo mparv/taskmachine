@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+    <link rel="stylesheet" href="public/custom-css.css" />
+
+    <!-- React and ReactDOM from CDN -->
+    <script src="/react_17.0.2.development.js" crossorigin></script>
+    <script src="/react-dom_17.0.2.development.js" crossorigin></script>
+
+    <!-- Babel to support JSX directly in the browser -->
+    <script src="/babel_6.26.0.min.js"></script>
+
+    <script src="/material-ui.production_4.11.0.min.js"></script>
+
+    <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { Card, CardContent, Typography, Button, Grid, IconButton } = MaterialUI;
+
+      const InvestmentInfoForm = ({ onSubmit }) => (
+        <form onSubmit={onSubmit} className="mb-4">
+
+          <div className="form-group">
+            <label>Token amount:</label>
+            <select name="investments" className="form-control">
+              <option value="/investments/v1/stocks_pnl">P&L</option>
+              <option value="/investments/v1/stocks_specific">Stocks General Info</option>
+              <option value="/investments/v1/stocks_sectors" selected>Sector Info</option>
+              <option value="/investments/v1/orders">Orders</option>
+            </select>
+          </div>
+
+          <Button variant="contained" color="primary" type="submit">
+            Get Info
+          </Button>
+        </form>
+      );
+
+      const App = () => {
+        const [loadingCreate, setLoadingCreate] = React.useState(false);
+        const [responseMessage, setResponseMessage] = React.useState("");
+
+        const submitTask = (e) => {
+          e.preventDefault();
+          setLoadingCreate(true);
+
+          fetch('{%= BASE_URL =%}' + e.target.investments.value, {
+            method: 'GET'
+          })
+          .then((response) => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json()
+            })
+            .then((data) => {
+              setResponseMessage(JSON.stringify(data, null, 2))
+            })
+            .catch((error) => console.error('Error:', error))
+            .finally(() => {
+              setLoadingCreate(false);
+            })
+        };
+
+        return (
+          <div className="container mt-5">
+            <div className="row">
+              <div className="col-md-4">
+                <h2>Investments Information</h2>
+                {loadingCreate ? (
+                    <div className="loading-overlay">
+                      <div className="loading-text">Processing Investment Task...</div>
+                    </div>
+                  ) : (
+                    <InvestmentInfoForm onSubmit={submitTask} />
+                  )}
+                  <div><pre>{responseMessage}</pre></div>
+              </div>
+            </div>
+           </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React App with Date Picker</title>
+  <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+  <script src="/react_17.0.2.development.js"></script>
+  <script src="/react-dom_17.0.2.development.js"></script>
+  <script src="/babel_6.26.0.min.js"></script>
+
+  <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function App() {
+      const [selectedDate, setSelectedDate] = React.useState("");
+      const [responseMessage, setResponseMessage] = React.useState("");
+
+      const handleDateChange = (e) => setSelectedDate(e.target.value);
+
+      const handleSendClick = async () => {
+        try {
+          var isChecked = document.querySelector('input[name="zeroSix"]').checked;
+          const response = await fetch(
+            `{%= BASE_URL =%}/utils/v1/network_usage/${selectedDate}?zeroSix=${isChecked}`
+          );
+          const result = await response.text(); // assuming server returns text; adjust if JSON
+          setResponseMessage(result);
+        } catch (error) {
+          setResponseMessage("Error: " + error.message);
+        }
+      };
+
+      return (
+        <div className="container mt-5">
+          <div className="card p-4 shadow-sm">
+            <h2 className="text-center mb-4">Check network usage</h2>
+            <div className="text-center">
+              <input 
+                type="date" 
+                className="form-control mb-3" 
+                value={selectedDate} 
+                onChange={handleDateChange} 
+              />
+              <label className="form-check-label">
+              <input type="checkbox" className="form-check-input" name="zeroSix" />
+              N/W Usage for 00-06 hour(s):
+              </label>
+              <br /><button className="btn btn-primary" onClick={handleSendClick}>Send</button>
+              {responseMessage && (
+                <div className="mt-3 alert alert-info">{responseMessage}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

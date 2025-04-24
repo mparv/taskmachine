@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit and Search Example</title>
+
+    <link rel="icon" type="image/png" href="/icon">
+    <link rel="stylesheet" href="/bootstrap._4.5.2.min.css">
+</head>
+<body>
+<div style="display: flex; width: 100%;">
+    <div style="width: 45%;">
+        <h2>Submit a Short Paragraph</h2>
+        <form id="submitForm" class="p-3 border rounded bg-light">
+            <div class="mb-3">
+                <label for="book" class="form-label">Book</label>
+                <input type="text" id="book" class="form-control" size="30" list="bookListOptions" oninput="fetchBookList()" />
+                <datalist id="bookListOptions"></datalist>
+            </div>
+            <div class="mb-3">
+                <label for="paragraph" class="form-label">Notes</label>
+                <textarea id="paragraph" name="paragraph" class="form-control" rows="6" cols="100" placeholder="Write your notes here"></textarea>
+            </div>
+            <div class="text-end">
+                <input type="button" value="Submit" class="btn btn-primary" onclick="submitForm()">
+            </div>
+        </form>        
+    </div>
+    
+    <div class="p-3 border rounded bg-light" style="width: 45%;">
+        <h2 class="mb-3">Search API</h2>
+        <button class="btn btn-secondary mb-3" onclick="showDeleteDiv()">Book Operations</button>
+        <div class="mb-3">
+            <label for="bookSearch" class="form-label">Book</label>
+            <input type="text" id="bookSearch" class="form-control" size="30" list="bookListOptions" oninput="fetchBookList()" />
+        </div>
+        <div class="mb-3">
+            <label for="searchInput" class="form-label">Search Term</label>
+            <input type="text" id="searchInput" class="form-control" placeholder="Enter search term" size="40" />
+        </div>
+        <button class="btn btn-primary mb-3" onclick="searchAPI()">Search</button>
+        <h3 class="mt-4">Search Results</h3>
+        <div id="searchResults" class="border p-2 bg-white" style="white-space: pre-wrap;">
+            <p id="searchResults"></p>
+        </div>
+    </div>
+    
+    <!-- Hidden Delete Book Popup -->
+    <div id="deleteBookDiv" style="display: none;" class="popup-overlay">
+        <div class="popup-content p-4 border rounded bg-light">
+            <button class="btn btn-danger mb-3" onclick="closeDeleteDiv()">Close</button>
+            <h3 class="mb-3">Book Operations</h3>
+            <div class="mb-3">
+                <input type="text" id="deleteBookInput" class="form-control" placeholder="Enter book to delete" />
+            </div>
+            <button class="btn btn-primary mb-3" onclick="deleteBook()">Submit</button>
+            <button class="btn btn-secondary mb-3" onclick="getBooks()">Get Books</button>
+            <div class="border rounded p-3 bg-white">
+                <pre id="bookDisplay">Books...</pre>
+            </div>
+        </div>
+    </div>
+    
+    
+
+</div>
+<style>
+    /* Popup Overlay */
+    .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    /* Popup Content */
+    .popup-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 300px;
+        text-align: center;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Button styling for modal */
+    .popup-content button {
+        margin-top: 10px;
+    }
+
+</style>
+
+    <script>
+     // Function to show the popup
+     function showDeleteDiv() {
+        document.getElementById("deleteBookDiv").style.display = "flex";
+    }
+
+    // Function to close the popup
+    function closeDeleteDiv() {
+        document.getElementById("deleteBookDiv").style.display = "none";
+    }
+
+    // Function to delete a book
+    function deleteBook() {
+        const bookToDelete = document.getElementById("deleteBookInput").value;
+
+            fetch('{%= BASE_URL =%}/notes/v1/store/' + bookToDelete, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Display the search result in the <p> tag
+                alert(data)
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error)
+            });
+
+        closeDeleteDiv(); // Close popup after deletion
+    }
+
+    async function fetchBookList() {
+        try {
+            // TODO fix this
+            // For now stopping this request
+            return
+            const response = await fetch('{%= BASE_URL =%}/notes/v1/store/bookList');
+            const text = await response.text();
+
+            // Parse the response as HTML to extract <li> items
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const items = Array.from(doc.querySelectorAll('li')).map(li => li.textContent);
+
+            // Clear existing options in the datalist
+            const datalist = document.getElementById('bookListOptions');
+            datalist.innerHTML = '';
+
+            // Add each item as an option in the datalist
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            })
+        } catch (error) {
+            console.error('Error fetching book list:', error);
+        }
+    }
+
+    function getBooks() {
+
+        fetch('{%= BASE_URL =%}/notes/v1/store/bookList', {
+            method: 'GET'
+        })
+        .then(response => response.text())
+        .then(data => {
+            // Display the search result in the <p> tag
+            document.getElementById("bookDisplay").innerHTML = data
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error)
+        });
+    }
+
+        // Function to call the search API
+        function searchAPI() {
+            const queryP = document.getElementById('searchInput').value;
+            const bookSearch = document.getElementById("bookSearch").value;
+
+            fetch('{%= BASE_URL =%}/notes/v1/search', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({queryP: queryP, book: bookSearch}),
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Display the search result in the <p> tag
+                document.getElementById('searchResults').textContent = data;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('searchResults').textContent = 'Error fetching search results.';
+            });
+        }
+
+        function submitForm() {
+            const paragraph = document.getElementById('paragraph').value
+            const book = document.getElementById("book").value
+
+            fetch('{%= BASE_URL =%}/notes/v1/store', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ paragraph: paragraph, book: book }),
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Paragraph submitted successfully!');
+                } else {
+                    alert('Failed to submit the paragraph.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+
+</body>
+</html>
