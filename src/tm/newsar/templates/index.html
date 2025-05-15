@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .dropdown:hover .dropdown-menu {
+      display: block;
+    }
+  </style>
+
+  <title>NewSar App</title>
+  <link rel="stylesheet" href="static/external/bootstrap._4.5.2.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+
+  <script src="static/external/react_17.0.2.development.js"></script>
+  <script src="static/external/react-dom_17.0.2.development.js"></script>
+  <script src="static/external/babel_6.26.0.min.js"></script>
+
+  <script src="https://unpkg.com/react-router-dom@5.3.4/umd/react-router-dom.min.js"></script>
+
+  <!--
+  <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>-->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <link rel="icon" type="image/png" href="/icon">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { createContext, useState, useContext, useEffect } = React;
+    const { Link, useHistory, useParams, useLocation } = ReactRouterDOM;
+    const { BrowserRouter, Route, Switch } = ReactRouterDOM;
+  
+    let seedProductList = [];
+
+    axios.get("http://localhost:7000/article")
+    .then(res => {
+      seedProductList.length = 0;  // clear old data
+      seedProductList.push(...res.data.articles); // or res.data if not wrapped
+      console.log("Updated seedProductList:", seedProductList);
+    })
+    .catch(err => {
+      console.error("Error loading /article:", err);
+    });
+
+    const ProductContext = createContext();
+  
+    function randomString(length) {
+      return Math.random().toString(36).substr(2, length);
+    }
+
+    function ProductProvider({ children }) {
+      const [products, setProducts] = useState(seedProductList);
+      const [showPopup, setShowPopup] = useState(false);
+      const [counter, setCounter] = useState(0);
+
+      return (
+        <ProductContext.Provider value={ {
+          products:products, setProducts:setProducts,
+          showPopup:showPopup, setShowPopup:setShowPopup,
+          counter:counter, setCounter:setCounter
+        } } >
+          {children}
+        </ProductContext.Provider>
+      );
+    }
+  
+    const MyButton = () => {
+      const {products, setProducts} = useContext(ProductContext);
+
+      const addEntry = () => {
+        console.log("addEntry")
+        //console.log(products)
+        setProducts([...products, {"name": randomString(10), "category": randomString(7)}]);
+      };
+
+      return (
+        <button onClick={addEntry} className="btn btn-primary">Add Entry</button>
+      );
+    };
+
+    const TimerButtonToggle = () => {
+      //console.log("Timer Button toggle")
+      const {showPopup, setShowPopup, counter, setCounter} = useContext(ProductContext);
+      
+      const handleClick = () => {
+        setShowPopup(!showPopup);
+      }
+
+      useEffect(() => {
+        const interval = setInterval(() => {
+          //console.log("Set timer called")
+          setCounter(prev => prev + 1)
+        }, 1000);
+      }, []);
+      
+      return (
+        <button className="btn btn-danger" onClick={handleClick}>Toggle Timer</button>
+      );
+    };
+
+    const CloseButton = () => {
+      //console.log("Timer Button toggle")
+      const {showPopup, setShowPopup, counter, setCounter} = useContext(ProductContext);
+      
+      const handleClick = () => {
+        setShowPopup(!showPopup);
+      }
+      
+      return (
+        <button className="btn btn-outline-danger w-100 mt-2" onClick={handleClick}>Close</button>
+      );
+    };
+
+    const Product = ({ info }) => {
+      const history = useHistory();
+
+      const handleClick = () => {
+        console.log(info.title);
+        const safeTitle = info.title.replace(/%/g, "");  // or use a regex to strip control chars
+        history.push({
+          pathname: `/product/${encodeURIComponent(safeTitle)}`,
+          state: {content: info.content}
+      });
+      };
+  
+      return (
+        <div className="card p-3">
+          <h5 onClick={handleClick}>{info.title}</h5>
+          <h5>{}</h5>
+        </div>
+      );
+    };
+  
+    const ProductList = () => {
+      const { products } = useContext(ProductContext);
+      return products.map((product) => (
+        <Product key={product.title} info={product} />
+      ));
+    };
+  
+    const AppContent = () => {
+      const {showPopup, counter} = useContext(ProductContext);
+
+      return (
+      <React.Fragment>
+      {% raw %}
+
+        {/* Main content shifted to the right of the sidebar */}
+        <div className="container" style={{ marginLeft: "180px", marginTop: "20px", paddingTop: "2rem" }}>
+        <h3 className="text-primary fw-bold mb-4">NewSar: A news site</h3>
+
+        {/* Product List in a card */}
+        <div className="card shadow-sm p-4 mb-4">
+          <ProductList />
+        </div>
+
+        {/* Buttons with spacing */}
+        <div className="d-flex gap-3 mb-4">
+          <MyButton />
+          <TimerButtonToggle />
+        </div>
+      </div>
+
+      {showPopup && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          role="dialog"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }} // adds backdrop
+        >
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content p-4">
+              <div className="modal-header border-0">
+                <h5 className="modal-title text-muted">Counter</h5>
+              </div>
+              <div className="modal-body">
+                <h2 className="text-center text-dark">{ counter }</h2>
+              </div>
+              <div className="modal-footer border-0">
+                <CloseButton />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {% endraw %}
+
+        </React.Fragment>
+      );
+    };
+
+    const MenuBar = () => {
+      return (
+        <nav className="fixed-top bg-dark text-white p-3 d-flex justify-content-around">
+          <Link to="/" className="text-white text-decoration-none">Home</Link>
+          <Link to="/history" className="text-white text-decoration-none">History</Link>
+
+          <div className="dropdown">
+            <span
+              className="text-white text-decoration-none dropdown-toggle"
+              data-toggle="dropdown"
+            >
+              About
+            </span>
+            <div className="dropdown-menu">
+              <Link to="/about/team" className="p-3 fw-bold dropdown-item">Our Team</Link>
+              <Link to="/about/mission" className="p-3 fw-bold dropdown-item">Mission</Link>
+            </div>
+          </div>
+
+          <Link to="/contact" className="text-white text-decoration-none">Contact Us</Link>
+        </nav>
+      );
+    };
+
+    const SideBar = () => {
+      return (
+        {% raw %}
+        <nav
+          className="position-fixed top-0 start-0 h-100 bg-dark text-white shadow-lg p-4 d-flex flex-column"
+          style={{
+            width: "160px",
+            paddingTop: "4.5rem",
+            position: "fixed",
+            "top": 60,
+            "left": 0,
+            zIndex: 1050
+          }}
+        >
+          <h5 className="text-light mb-4 border-bottom pb-2">Quick Links</h5>
+
+          <Link to="/comments" className="text-white nav-link mb-3 d-flex align-items-center gap-2">
+            <i className="bi bi-chat-left-text"></i> Comments
+          </Link>
+
+          <Link to="/bookmarks" className="text-white nav-link mb-3 d-flex align-items-center gap-2">
+            <i className="bi bi-bookmark-star"></i> Bookmarks
+          </Link>
+
+          <Link to="/mostliked" className="text-white nav-link d-flex align-items-center gap-2">
+            <i className="bi bi-heart-fill"></i> Most Liked
+          </Link>
+        </nav>
+        {% endraw %}
+      );
+    };
+
+    const Comment = ({ text, timestamp }) => (
+      <div className="mb-3 p-2 border rounded">
+        <p className="mb-1">{text}</p>
+        <small className="text-muted">{new Date(timestamp).toLocaleString()}</small>
+      </div>
+    );
+
+    const CommentList = () => {
+      const [comments, setComments] = React.useState([
+        { text: "Great article!", timestamp: Date.now() - 60000 },
+        { text: "Thanks for sharing.", timestamp: Date.now() - 120000 },
+      ]);
+
+      const [newComment, setNewComment] = React.useState("");
+
+      const handleAdd = () => {
+        if (newComment.trim() === "") return;
+        setComments([...comments, { text: newComment.trim(), timestamp: Date.now() }]);
+        setNewComment("");
+      };
+
+      return (
+        <div className="mt-4">
+          {comments.map((c, i) => (
+            <Comment key={i} text={c.text} timestamp={c.timestamp} />
+          ))}
+
+          <div className="mt-3">
+            <textarea
+              className="form-control mb-2"
+              rows="2"
+              placeholder="Write a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button onClick={handleAdd} className="btn btn-primary">Post Comment</button>
+          </div>
+        </div>
+      );
+    };
+
+    const NewsDetail = () => {
+      const { title } = useParams();
+      const location = useLocation();
+
+      return (
+        {% raw %}
+        <div className="container" style={{ marginLeft: "180px", marginTop: "20px", paddingTop: "2rem" }}>
+          <h2>{decodeURIComponent(title)}</h2>
+          <p>{location.state.content}
+            </p>
+            <CommentList />
+        </div>
+        {% endraw %}
+      );
+    };
+
+    const NotFound = () => {
+      return (
+        {% raw %}
+        <div className="container" style={{ marginLeft: "180px", marginTop: "20px", paddingTop: "2rem" }}>
+          <h1>404! Page not found!</h1>
+        </div>
+        {% endraw %}
+      );
+    };
+
+    const App = () => {
+      return (
+        <ReactRouterDOM.BrowserRouter>
+          <ProductProvider>
+            <MenuBar />
+            <SideBar />
+            <ReactRouterDOM.Switch>
+              <ReactRouterDOM.Route exact path="/" component={AppContent} />
+              <Route path="/product/:title" component={NewsDetail} />
+              <ReactRouterDOM.Route component={NotFound} />
+            </ReactRouterDOM.Switch>
+          </ProductProvider>
+        </ReactRouterDOM.BrowserRouter>
+      );
+    };
+  
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>

@@ -193,16 +193,6 @@
                 <div className="mt-3 alert alert-info"><pre>{responseMessage}</pre></div>
                 )}
               </div>
-
-              <div className="col-md-4">
-                <h2>Expend Tokens</h2>
-                {loadingArchive ? (
-                    <div className="loading-overlay">
-                      <div className="loading-text">Processing Archive Task...</div>
-                    </div>
-                  ) : (
-                <ArchiveTaskForm onSubmit={archiveTask} />)}
-              </div>
             </div>
           </div>
         );

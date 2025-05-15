@@ -73,10 +73,11 @@ def endpoint_extension():
         return '', 200
 
     data = request.get_json()
-    data['harbor-extension'] = data['text'].replace(",", "__COMMA__")\
+    date_now = str(datetime.datetime.now()).replace(":", "_").replace(".", "_")
+    data['harbor-extension'] = date_now + " " + data['text'].replace(",", "__COMMA__")\
         .replace(":", "__COLON__").replace("\n", "__NEWLINE__")
     del data['text']
-    paras['harbor-extension'].append(data['harbor-extension'])
+    paras['harbor-extension'].append(f"{data['harbor-extension']}")
 
     save_para('harbor-extension', data)
 
@@ -283,13 +284,21 @@ def network_usage(date_):
             day_ = dt_.split(" ")[0]
             hr_ = int(dt_.split(" ")[1].split(":")[0])
             if day_ == date_:
-                if is_checked:
-                    if hr_ in [0, 1, 2, 3, 4, 5]:
-                        total_usage += float(usage)
-                elif hr_ not in [0, 1, 2, 3, 4, 5]:
-                    total_usage += float(usage)
+                total_usage += float(usage)
 
-    return "Usage of network on {}: {} MiB".format(date_, int(total_usage)), 200
+                #if is_checked:
+                #    if hr_ in [0, 1, 2, 3, 4, 5]:
+                #        total_usage += float(usage)
+                #elif hr_ not in [0, 1, 2, 3, 4, 5]:
+                #    total_usage += float(usage)
+
+    gib_data = int(total_usage/1000)
+    try:
+        mib_data = int(str(int(total_usage))[-3:-2])
+    except Exception:
+        mib_data = 0
+
+    return "Usage of network on {}: {}.{} GB".format(date_, gib_data, mib_data), 200
 
 @app.route('/tm/v1/tasks/<string:id>', methods=['GET'])
 def get_task_by_id(id):
@@ -377,7 +386,7 @@ def read_tokens():
 
 def save_entry(data):
     string_dict = {str(k): str(v) for k, v in data.items()}
-    q.put((file_client.append_data, ["pzk", "ofc", "confluence", string_dict]))
+    q_global.put((file_client.append_data, ["pzk", "ofc", "confluence", string_dict]))
     #file_client.append_data("pzk", "ofc", "confluence", string_dict)
 
 def read_data():
